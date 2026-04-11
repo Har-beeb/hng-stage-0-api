@@ -8,6 +8,15 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (req, res) => {
+  res
+    .status(200)
+    .json({
+      message:
+        "Welcome to the HNG Stage 0 API! Hit the /api/classify endpoint to test.",
+    });
+});
+
 // 2. The Core Route
 app.get("/api/classify", async (req, res) => {
   try {
