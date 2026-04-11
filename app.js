@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const logger = require('./utils/logger')
 
 // 1. Mandatory CORS Header Middleware
 app.use((req, res, next) => {
@@ -45,7 +46,7 @@ app.get("/api/classify", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Fetch failed:", error);
+    logger.error("Fetch failed:", error.message);
     res.status(500).json({
       status: "error",
       message: "Upstream or server failure",
