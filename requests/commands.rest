@@ -7,18 +7,24 @@ Content-Type: application/json
 }
 
 ### 2. Test Idempotency (Run this again, should return 200 "Profile already exists")
-POST http://localhost:3000/api/profiles
+POST https://hng-stage-0-api-eta.vercel.app/api/profiles
 Content-Type: application/json
 
 {
-    "name": "olawunmi"
+    "name": "oluwafemi"
 }
 
 ### 3. Get All Profiles (Without filters)
 GET http://localhost:3000/api/profiles
 
+###
+GET https://hng-stage-0-api-eta.vercel.app/api/profiles
+
 ### 4. Get All Profiles (With filters - tests the case-insensitive regex)
 GET http://localhost:3000/api/profiles?gender=female&age_group=adult
+
+###
+GET http://hng-stage-0-api-eta.vercel.app/api/profiles?gender=female&age_group=adult
 
 
 ### ---------------------------------------------------------
