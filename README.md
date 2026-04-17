@@ -1,88 +1,54 @@
-# HNG Stage 0: Name Classification API
 
-A lightweight, fast RESTful API built with Node.js and Express that integrates with the external Genderize API. It accepts a name as a query parameter, processes the prediction data, calculates confidence metrics, and returns a strictly formatted JSON response.
+# HNG Stage 1: Data Persistence & API Orchestration
+
+A RESTful CRUD API built with Node.js, Express, and MongoDB. This microservice accepts a name, orchestrates parallel requests to three external APIs (Genderize, Agify, Nationalize) to calculate demographic data, and persists the data to a cloud database with idempotency handling.
 
 ## 🚀 Features
 
-- **External API Integration:** Seamlessly fetches data from `api.genderize.io`.
-- **Data Transformation:** Calculates a strict `is_confident` boolean based on probability and sample size thresholds.
-- **Dynamic Timestamps:** Generates accurate ISO 8601 UTC timestamps for every request.
-- **Robust Error Handling:** Gracefully handles missing parameters, upstream API failures, and unidentifiable names.
-- **CORS Enabled:** Fully accessible from any origin (`*`) for automated testing.
+- **Parallel API Integration:** Utilizes `Promise.all()` to fetch data simultaneously from multiple external sources, ensuring low latency.
+- **Data Persistence:** Fully connected to MongoDB Atlas using Mongoose for schema validation.
+- **Idempotency:** Checks the database before external fetching to prevent duplicate records.
+- **Advanced Filtering:** Supports case-insensitive query parameters for tailored data retrieval.
+- **UUID v7 Implementation:** Replaces standard MongoDB ObjectIds with time-sortable UUID v7s.
 
 ## 🛠️ Tech Stack
 
 - **Runtime:** Node.js
 - **Framework:** Express.js
-- **Network Requests:** Native `fetch()` API
+- **Database:** MongoDB Atlas & Mongoose
 - **Deployment:** Vercel
 
-## 📦 Local Setup & Installation
+## 📦 API Endpoints
 
-Run the following commands in your terminal to set up and start the project locally:
+### 1. Create Profile
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/Har-beeb/hng-stage-0-api.git
-cd hng-stage-0-api
+Analyzes a name, fetches external data, and saves it.
+`POST /api/profiles`
+`Content-Type: application/json`
 
-# 2. Install dependencies
-npm install
-
-# 3. Start the development server
-npm start
-```
-
-## 📖 API Documentation
-
-### 1. Classify Name
-Analyzes a given name and returns gender probability and confidence metrics.
-
-**Endpoint:** `GET /api/classify?name={name}`
-
-**Success Response (200 OK):**
 ```json
-{
-  "status": "success",
-  "data": {
-    "name": "john",
-    "gender": "male",
-    "probability": 0.99,
-    "sample_size": 1234,
-    "is_confident": true,
-    "processed_at": "2026-04-11T12:00:00.000Z"
-  }
-}
-```
-
-### ⚠️ Error Responses
-
-**Missing or Empty Name (400 Bad Request):**
-```json
+// Request Body
 { 
-  "status": "error", 
-  "message": "Missing or empty name parameter" 
+  "name": "ella" 
 }
 ```
 
-**Unidentifiable Name (400 Bad Request):**
-*Returned if the external API yields null gender or 0 count.*
-```json
-{ 
-  "status": "error", 
-  "message": "No prediction available for the provided name" 
-}
-```
+### 2. Get All Profiles
 
-**Server/Upstream Error (500 Internal Server Error):**
-```json
-{ 
-  "status": "error", 
-  "message": "Upstream or server failure" 
-}
-```
+Retrieves all stored profiles. Supports optional filtering.
+`GET /api/profiles?gender=female&age_group=adult`
 
-## 👤 Author
+### 3. Get Single Profile
+
+Retrieves a specific profile by its ID.
+`GET /api/profiles/:id`
+
+### 4. Delete Profile
+
+Removes a profile from the database.
+`DELETE /api/profiles/:id`
+
+### 👤 Author
 
 - **Name:** Har-beebullah I.O
 - **HNG Slack ID:** H.A.X

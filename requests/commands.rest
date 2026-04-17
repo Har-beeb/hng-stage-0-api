@@ -1,0 +1,34 @@
+### 1. Create a new profile (Click Send Request)
+POST http://localhost:3000/api/profiles
+Content-Type: application/json
+
+{
+    "name": "olawunmi"
+}
+
+### 2. Test Idempotency (Run this again, should return 200 "Profile already exists")
+POST http://localhost:3000/api/profiles
+Content-Type: application/json
+
+{
+    "name": "olawunmi"
+}
+
+### 3. Get All Profiles (Without filters)
+GET http://localhost:3000/api/profiles
+
+### 4. Get All Profiles (With filters - tests the case-insensitive regex)
+GET http://localhost:3000/api/profiles?gender=female&age_group=adult
+
+
+### ---------------------------------------------------------
+### NOTE: For the next two routes, copy the "id" you got from 
+### the POST response above and replace "YOUR_PROFILE_ID" below.
+### ---------------------------------------------------------
+
+### 5. Get a Single Profile by ID
+GET http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
+
+### 6. Delete a Profile by ID
+DELETE http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
+
