@@ -36,7 +36,7 @@ GET http://hng-stage-0-api-eta.vercel.app/api/profiles?gender=female&age_group=a
 GET http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
 
 ### 6. Delete a Profile by ID
-DELETE http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
+DELETE http://localhost:3000/api/profiles/019db071-073d-7995-bc5c-632cd951322d
 
 ### Test Advanced Slicer
 GET http://localhost:3000/api/profiles?gender=male&country_id=NG&min_age=25&sort_by=age&order=desc&page=1&limit=5
