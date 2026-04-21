@@ -38,3 +38,9 @@ GET http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
 ### 6. Delete a Profile by ID
 DELETE http://localhost:3000/api/profiles/019d9a84-a37d-74a5-b794-9e9f0891a488
 
+### Test Advanced Slicer
+GET http://localhost:3000/api/profiles?gender=male&country_id=NG&min_age=25&sort_by=age&order=desc&page=1&limit=5
+
+### Test The Translator
+GET http://localhost:3000/api/profiles/search?q=females above 30 from nigeria
+

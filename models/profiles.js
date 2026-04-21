@@ -19,6 +19,7 @@ const profileSchema = new mongoose.Schema({
   age: Number,
   age_group: String,
   country_id: String,
+  country_name: String, // <-- NEW FIELD ADDED FOR STAGE 2
   country_probability: Number,
   created_at: {
     type: Date,

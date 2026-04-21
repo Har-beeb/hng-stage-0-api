@@ -1,15 +1,14 @@
+# Insighta Labs Demographic API (HNG Backend)
 
-# HNG Stage 1: Data Persistence & API Orchestration
-
-A RESTful CRUD API built with Node.js, Express, and MongoDB. This microservice accepts a name, orchestrates parallel requests to three external APIs (Genderize, Agify, Nationalize) to calculate demographic data, and persists the data to a cloud database with idempotency handling.
+A RESTful Node.js microservice built for Insighta Labs. This API orchestrates parallel requests to demographic prediction models (Genderize, Agify, Nationalize), persists data using MongoDB, and features a custom Natural Language Processing (NLP) engine for complex data querying.
 
 ## 🚀 Features
 
-- **Parallel API Integration:** Utilizes `Promise.all()` to fetch data simultaneously from multiple external sources, ensuring low latency.
-- **Data Persistence:** Fully connected to MongoDB Atlas using Mongoose for schema validation.
-- **Idempotency:** Checks the database before external fetching to prevent duplicate records.
-- **Advanced Filtering:** Supports case-insensitive query parameters for tailored data retrieval.
-- **UUID v7 Implementation:** Replaces standard MongoDB ObjectIds with time-sortable UUID v7s.
+- **Natural Language Querying:** Custom rule-based NLP engine translates plain English sentences into MongoDB filter objects.
+- **Advanced Slicer Engine:** Supports strict filtering, sorting, and pagination (up to 50 records per page).
+- **Parallel API Integration:** Utilizes `Promise.all()` to fetch data simultaneously from external sources for low-latency profile creation.
+- **Data Persistence & Idempotency:** Connected to MongoDB Atlas with strict checks to prevent duplicate records.
+- **Dynamic Dictionary Generation:** Automatically builds a case-insensitive country code dictionary on server startup.
 
 ## 🛠️ Tech Stack
 
@@ -21,35 +20,48 @@ A RESTful CRUD API built with Node.js, Express, and MongoDB. This microservice a
 ## 📦 API Endpoints
 
 ### 1. Create Profile
-
-Analyzes a name, fetches external data, and saves it.
+Analyzes a name, fetches external demographic data, and saves it.
 `POST /api/profiles`
-`Content-Type: application/json`
 
-```json
-// Request Body
-{ 
-  "name": "ella" 
-}
-```
+    {
+      "name": "ella"
+    }
 
-### 2. Get All Profiles
+### 2. Get Profiles (Advanced Slicer)
+Retrieves profiles with support for complex filtering, sorting, and pagination.
+`GET /api/profiles?gender=female&min_age=25&sort_by=age&order=desc&page=1&limit=10`
 
-Retrieves all stored profiles. Supports optional filtering.
-`GET /api/profiles?gender=female&age_group=adult`
+### 3. Natural Language Search (NLP)
+Translates English sentences into data queries.
+`GET /api/profiles/search?q=adult females from nigeria`
 
-### 3. Get Single Profile
-
-Retrieves a specific profile by its ID.
+### 4. Get / Delete Single Profile
 `GET /api/profiles/:id`
-
-### 4. Delete Profile
-
-Removes a profile from the database.
 `DELETE /api/profiles/:id`
 
-### 👤 Author
+---
 
+## 🧠 The NLP Engine (`/search`)
+
+### ⚙️ How the Parsing Logic Works
+The parser uses Regular Expressions (Regex) and word boundary constraints (`\b`) to scan the user's input string for specific keywords. It ignores capitalization and extracts matched parameters to dynamically build a MongoDB filter.
+
+### ✅ Supported Keywords & Mapping
+* **Gender:** Recognizes `male`, `males`, `female`, and `females`. 
+* **Age Groups:** Maps `child`, `teenager`, `adult`, and `senior`.
+* **The "Young" Keyword:** Explicitly mapped to a `$gte: 16` and `$lte: 24` age range filter.
+* **Exact Age Ranges:** Scans for `above X` / `over X` (maps to `$gte: X`) and `below X` / `under X` (maps to `$lte: X`).
+* **Countries:** Dynamically builds a dictionary from seed data to map names to official ISO `country_id` (e.g., "nigeria" -> "NG").
+
+### 🚫 Limitations & Edge Cases Not Handled
+Because this is a strict rule-based parser and not an LLM, it has several limitations:
+1. **No Typo Tolerance:** The parser relies on exact spelling. "Nigiria" will be ignored.
+2. **No Complex Conjunctions:** It applies an implied `AND` to all extracted filters. It cannot process "males OR females".
+3. **Conflicting Logic:** If a user inputs "children above 50", the parser will build both filters, resulting in an empty dataset.
+4. **Compound Countries:** While it handles multi-word countries via the dynamic dictionary, it assumes exact spacing.
+
+---
+### 👤 Author
 - **Name:** Har-beebullah I.O
 - **HNG Slack ID:** H.A.X
 - **Track:** Backend
