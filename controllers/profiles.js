@@ -1,11 +1,12 @@
 const profilesRouter = require("express").Router();
 const Profile = require("../models/profiles");
 const countryDictionary = require("../utils/dictionary");
-const { extractAgeGroup, getAgeGroup } = require('../utils/helpers');
+const { extractAgeGroup, getAgeGroup, generatePaginationLinks, buildQueryOptions } = require('../utils/helpers');
+const { requireAdmin } = require("../utils/middleware");
 
 
 // POST /api/profiles
-profilesRouter.post("/", async (req, res) => {
+profilesRouter.post("/", requireAdmin, async (req, res) => {
   try {
     const { name } = req.body;
 
@@ -116,56 +117,11 @@ profilesRouter.post("/", async (req, res) => {
 // GET /api/profiles (Advanced Filtering, Sorting, and Pagination)
 profilesRouter.get("/", async (req, res) => {
   try {
-    // 1. Extract everything the user might ask for from the URL query
-    const {
-      gender,
-      age_group,
-      country_id,
-      min_age,
-      max_age,
-      min_gender_probability,
-      min_country_probability,
-      sort_by,
-      order,
-      page,
-      limit,
-    } = req.query;
+    // 1. Let the helper build the filter and sort objects
+    const { filter, sortOptions } = buildQueryOptions(req.query);
 
-    // ==========================================
-    // BLOCK 1: THE FILTER BUILDER
-    // ==========================================
-    const filter = {}; // Start with an empty filter (get everything)
-    // Exact Matches (ignoring case where necessary)
-    if (gender) filter.gender = gender.toLowerCase();
-    if (age_group) filter.age_group = age_group.toLowerCase();
-    if (country_id) filter.country_id = country_id.toUpperCase();
-
-    // Range Filter (Using MongoDB's $gte and $lte operators)
-    if (min_age || max_age) {
-      filter.age = {}; // Create an age object
-      if (min_age) filter.age.$gte = Number(min_age); // Greater Than or Equal
-      if (max_age) filter.age.$lte = Number(max_age); // Less Than or Equal
-    }
-
-    // Probability Thresholds
-    if (min_gender_probability) {
-      filter.gender_probability = { $gte: Number(min_gender_probability) };
-    }
-
-    // NEW FILTER FOR COUNTRY PROBABILITY
-    if (min_country_probability) {
-      filter.country_probability = { $gte: Number(min_country_probability) };
-    }
-
-    // ==========================================
-    // BLOCK 2: THE SORTING HAT
-    // ==========================================
-    const sortOptions = {};
-    if (sort_by) {
-      // If order is 'desc', use -1. Otherwise, use 1 (asc)
-      const sortDirection = order === "desc" ? -1 : 1;
-      sortOptions[sort_by] = sortDirection;
-    }
+    // 2. Extract only what we need for pagination here
+    const { page, limit } = req.query;
 
     // ==========================================
     // BLOCK 3: PAGINATION MATH
@@ -186,17 +142,29 @@ profilesRouter.get("/", async (req, res) => {
     // 1. Count total documents that match the filter (for the response block)
     const totalMatchingProfiles = await Profile.countDocuments(filter);
 
+    // Calculate total pages based on the total matching profiles and the limit
+    const totalPages = Math.ceil(totalMatchingProfiles / limitNumber) || 1;
+    const paginationLinks = generatePaginationLinks(
+      req,
+      pageNumber,
+      limitNumber,
+      totalPages,
+    );
+
     // 2. Fetch the actual profiles with filter, sorting, and pagination
     const profiles = await Profile.find(filter)
       .sort(sortOptions)
       .skip(skipNumber)
       .limit(limitNumber);
+
     // 3. Send the response with metadata
     res.status(200).json({
       status: "success",
       total: totalMatchingProfiles, // Total profiles that match the filter (ignoring pagination)
       page: pageNumber,
       limit: limitNumber,
+      total_pages: totalPages,
+      links: paginationLinks,
       data: profiles,
     });
   } catch (error) {
@@ -286,19 +254,57 @@ profilesRouter.get("/search", async (req, res) => {
 
     // Fetch the data using our translated filters
     const totalMatchingProfiles = await Profile.countDocuments(filter);
+
+    //Calculate total pages
+    const totalPages = Math.ceil(totalMatchingProfiles / limitNumber) || 1;
+
     const profiles = await Profile.find(filter)
       .skip(skipNumber)
       .limit(limitNumber);
+
+    const paginationLinks = generatePaginationLinks(req, pageNumber, limitNumber, totalPages);
 
     res.status(200).json({
       status: "success",
       page: pageNumber,
       limit: limitNumber,
       total: totalMatchingProfiles,
+      total_pages: totalPages,
+      links: paginationLinks,
       data: profiles,
     });
   } catch (error) {
     res.status(500).json({ status: "error", message: "Server failure" });
+  }
+});
+
+// GET /api/profiles/export (Export to CSV)
+profilesRouter.get("/export", async (req, res) => {
+  try {
+    if (req.query.format !== 'csv') {
+      return res.status(400).json({ status: "error", message: "Invalid format requested. Use ?format=csv" });
+    }
+
+    // 1. Use the EXACT same helper so the logic is perfectly mirrored!
+    const { filter, sortOptions } = buildQueryOptions(req.query);
+
+    // 2. Fetch the data (No pagination for exports)
+    const profiles = await Profile.find(filter).sort(sortOptions);
+
+    // 3. Convert to CSV
+    const csvHeaders = "id,name,gender,gender_probability,age,age_group,country_id,country_name,country_probability,created_at\n";
+    const csvRows = profiles.map(p => {
+      return `"${p._id}","${p.name}","${p.gender}",${p.gender_probability},${p.age},"${p.age_group}","${p.country_id}","${p.country_name || ''}",${p.country_probability},"${p.created_at || new Date().toISOString()}"`;
+    });
+    const csvData = csvHeaders + csvRows.join("\n");
+
+    const timestamp = Date.now();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="profiles_${timestamp}.csv"`);
+    res.status(200).send(csvData);
+
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Server failure during export" });
   }
 });
 
@@ -324,7 +330,7 @@ profilesRouter.get("/:id", async (req, res) => {
 });
 
 // DELETE /api/profiles/:id (Delete a profile)
-profilesRouter.delete("/:id", async (req, res) => {
+profilesRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const deletedProfile = await Profile.findByIdAndDelete(req.params.id);
 
@@ -339,7 +345,6 @@ profilesRouter.delete("/:id", async (req, res) => {
   } catch (error) {
     res.status(404).json({ status: "error", message: "Profile not found" });
   }
-
 });
 
 module.exports = profilesRouter;
