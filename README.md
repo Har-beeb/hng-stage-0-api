@@ -17,6 +17,18 @@ A RESTful Node.js microservice built for Insighta Labs. This API orchestrates pa
 - **Database:** MongoDB Atlas & Mongoose
 - **Deployment:** Vercel
 
+## Authentication & Token Flow
+
+This API uses GitHub OAuth for authentication. Upon successful login, the server issues a JWT Access Token (short-lived) and a Refresh Token (long-lived). 
+
+## Role Enforcement
+
+Role-based access control (RBAC) is implemented. Users are assigned roles such as `admin`, `analyst`, or `user`. Protected endpoints verify the JWT payload to ensure the user has the required permissions before granting access.
+
+## CLI and Web Integration
+
+This Backend API is designed to be consumed by multiple interfaces. It serves data to both the Insighta Command Line Interface (CLI) and the Next.js Web Portal using a unified RESTful architecture.
+
 ## 📦 API Endpoints
 
 ### 1. Create Profile

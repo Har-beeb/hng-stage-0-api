@@ -15,7 +15,7 @@ Content-Type: application/json
 ### =========================================================
 
 ### 2. Get All Profiles (Basic Read)
-GET http://localhost:3000/api/profiles
+GET https://hng-stage-0-api-eta.vercel.app/api/profiles
 X-API-Version: 1
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAxOWRkNDQ5LTFjY2QtNzg4YS05MWNmLWVhNDdiN2U1MDJhYyIsInJvbGUiOiJhbmFseXN0IiwiaWF0IjoxNzc3MzkwMDQzLCJleHAiOjE3NzczOTM2NDN9.pFUpt1xqB5zEptCnoKlK3pJatKdASKnpnz8NnN9xExU
 
