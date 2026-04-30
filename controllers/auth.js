@@ -19,7 +19,9 @@ const generateTokens = (user) => {
 
 // 1. GET /auth/github
 authRouter.get("/github", (req, res) => {
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${config.GITHUB_CLIENT_ID}&scope=read:user user:email`;
+  // Generate a random, secure-looking string for the state
+  const state = Math.random().toString(36).substring(2, 15);
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${config.GITHUB_CLIENT_ID}&scope=read:user user:email&state=${state}`;
   res.redirect(githubAuthUrl);
 });
 
