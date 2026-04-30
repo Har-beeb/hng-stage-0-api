@@ -77,12 +77,17 @@ authRouter.get("/github/callback", async (req, res) => {
     let user = await User.findOne({ github_id: githubUser.id.toString() });
 
     if (!user) {
+      // Grab the string from .env and split it by the comma to create an array
+      const adminList = process.env.ADMIN_USERNAMES.split(",");
+      const assignedRole = adminList.includes(githubUser.login)
+        ? "admin"
+        : "analyst";
       user = new User({
         github_id: githubUser.id.toString(),
         username: githubUser.login,
         email: primaryEmail,
         avatar_url: githubUser.avatar_url,
-        role: "admin", // Make the very first user an admin so the bot finds an admin token!
+        role: assignedRole, // Make the very first user an admin so the bot finds an admin token!
       });
     } else {
       user.last_login_at = Date.now();
