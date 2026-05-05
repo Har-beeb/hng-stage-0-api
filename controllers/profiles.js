@@ -10,8 +10,8 @@ const multer = require("multer");
 const { processCSV } = require("../services/ingestionService"); // Import your service!
 const fs = require("fs");
 
-// Configure multer to store uploaded files temporarily on disk, NOT in RAM
-const upload = multer({ dest: 'uploads/' });
+// Vercel only allows writing to the /tmp directory
+const upload = multer({ dest: path.join(os.tmpdir(), 'uploads') });
 
 
 // POST /api/profiles
