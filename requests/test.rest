@@ -1,0 +1,75 @@
+# ==========================================
+# ENVIRONMENT VARIABLES
+# ==========================================
+@baseUrl = http://localhost:3000
+@baseUrl1 = https://hng-stage-0-api-eta.vercel.app/
+# Paste your generated access token here after logging in via browser/CLI
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAxOWRkZjljLTRhMDEtNzU1MS1hZDM3LTJkNzdkYjM2ZTRlMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NzU3NzUxMCwiZXhwIjoxNzc3NTc3NjkwfQ.MYZ-DNjHp58tnPrva0U_XdHUmCJ3clMoEyEb7b1Ym38
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAxOWRkZjljLTRhMDEtNzU1MS1hZDM3LTJkNzdkYjM2ZTRlMSIsImlhdCI6MTc3NzU3MzA1NCwiZXhwIjoxNzc3NTczMzU0fQ.9wCr_DsMSxRTweDAdtsiYKbCf1yT2hLvotmksICULbA
+
+
+# ==========================================
+# 1. TEST API VERSIONING (Strict Header Check)
+# ==========================================
+
+### Should FAIL (400 Bad Request) - Missing X-API-Version Header
+GET {{baseUrl}}/api/profiles
+Authorization: Bearer {{token}}
+
+### Should SUCCEED (200 OK) - Has Header
+GET {{baseUrl}}/api/profiles
+Authorization: Bearer {{token}}
+X-API-Version: 1
+
+
+# ==========================================
+# 2. TEST PAGINATION & SEARCH (Analyst/Admin)
+# ==========================================
+
+### Get Profiles with Pagination Params
+GET {{baseUrl}}/api/profiles?page=1&limit=5
+Authorization: Bearer {{token}}
+X-API-Version: 1
+
+### Search Profiles
+GET {{baseUrl}}/api/profiles/search?q=nigeria
+Authorization: Bearer {{token}}
+X-API-Version: 1
+
+
+# ==========================================
+# 3. TEST ROLE-BASED ACCESS (Admin Only)
+# ==========================================
+
+### Create Profile (Should succeed with Admin token, fail with Analyst token)
+POST {{baseUrl}}/api/profiles
+Authorization: Bearer {{token}}
+X-API-Version: 1
+Content-Type: application/json
+
+{
+  "name": "Harriet Tubman"
+}
+
+
+# ==========================================
+# 4. TEST CSV EXPORT
+# ==========================================
+
+### Export filtered profiles to CSV
+GET {{baseUrl}}/api/profiles/export?format=csv&gender=male&country=NG
+Authorization: Bearer {{token}}
+X-API-Version: 1
+
+
+# ==========================================
+# 5. TEST AUTH & TOKEN REFRESH
+# ==========================================
+
+### Refresh Token Route
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}

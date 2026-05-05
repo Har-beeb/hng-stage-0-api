@@ -4,6 +4,15 @@ const countryDictionary = require("../utils/dictionary");
 const { extractAgeGroup, getAgeGroup, generatePaginationLinks, buildQueryOptions } = require('../utils/helpers');
 const { requireAdmin } = require("../utils/middleware");
 
+const { normalizeQuery } = require("../utils/normalizer"); // The new normalizer we built
+const redisClient = require("../config/redis");
+const multer = require("multer");
+const { processCSV } = require("../services/ingestionService"); // Import your service!
+const fs = require("fs");
+
+// Configure multer to store uploaded files temporarily on disk, NOT in RAM
+const upload = multer({ dest: 'uploads/' });
+
 
 // POST /api/profiles
 profilesRouter.post("/", requireAdmin, async (req, res) => {
@@ -116,33 +125,31 @@ profilesRouter.post("/", requireAdmin, async (req, res) => {
 
 // GET /api/profiles (Advanced Filtering, Sorting, and Pagination)
 profilesRouter.get("/", async (req, res) => {
-  try {
-    // 1. Let the helper build the filter and sort objects
-    const { filter, sortOptions } = buildQueryOptions(req.query);
+  // NEW: 1. Generate the deterministic cache key using the full req.query
+  const cacheKey = `profiles:${normalizeQuery(req.query)}`;
 
-    // 2. Extract only what we need for pagination here
+  try {
+    // NEW: 2. Check Redis FIRST before doing any heavy lifting
+    const cachedResponse = await redisClient.get(cacheKey);
+    if (cachedResponse) {
+      // If we have a hit, parse it, flag it as cached, and return it instantly
+      const parsedData = JSON.parse(cachedResponse);
+      parsedData.source = "cache";
+      return res.status(200).json(parsedData);
+    }
+
+    // ==========================================
+    // YOUR EXACT STAGE 3 LOGIC REMAINS UNTOUCHED
+    // ==========================================
+    const { filter, sortOptions } = buildQueryOptions(req.query);
     const { page, limit } = req.query;
 
-    // ==========================================
-    // BLOCK 3: PAGINATION MATH
-    // ==========================================
-    // Default to page 1, limit 10 if the user doesn't provide them
     const pageNumber = Number(page) || 1;
     let limitNumber = Number(limit) || 10;
-
-    // Safety check: Max limit should not exceed 50!
     if (limitNumber > 50) limitNumber = 50;
-
-    // The Magic Formula: (Page - 1) * Limit
     const skipNumber = (pageNumber - 1) * limitNumber;
 
-    // ==========================================
-    // BLOCK 4: DATABASE EXECUTION & RESPONSE
-    // ==========================================
-    // 1. Count total documents that match the filter (for the response block)
     const totalMatchingProfiles = await Profile.countDocuments(filter);
-
-    // Calculate total pages based on the total matching profiles and the limit
     const totalPages = Math.ceil(totalMatchingProfiles / limitNumber) || 1;
     const paginationLinks = generatePaginationLinks(
       req,
@@ -151,22 +158,28 @@ profilesRouter.get("/", async (req, res) => {
       totalPages,
     );
 
-    // 2. Fetch the actual profiles with filter, sorting, and pagination
     const profiles = await Profile.find(filter)
       .sort(sortOptions)
       .skip(skipNumber)
       .limit(limitNumber);
 
-    // 3. Send the response with metadata
-    res.status(200).json({
+    // NEW: 3. Structure the response into a variable so we can cache it
+    const finalResponse = {
       status: "success",
-      total: totalMatchingProfiles, // Total profiles that match the filter (ignoring pagination)
+      source: "database", // Flag it so you know it came from the DB
+      total: totalMatchingProfiles,
       page: pageNumber,
       limit: limitNumber,
       total_pages: totalPages,
       links: paginationLinks,
       data: profiles,
-    });
+    };
+
+    // NEW: 4. Save this entire response to Redis for 1 hour (3600 seconds)
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(finalResponse));
+
+    // NEW: 5. Send the response to the user
+    res.status(200).json(finalResponse);
   } catch (error) {
     res.status(500).json({ status: "error", message: "Server failure" });
   }
@@ -305,6 +318,30 @@ profilesRouter.get("/export", async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ status: "error", message: "Server failure during export" });
+  }
+});
+
+// ==========================================
+// POST: CSV DATA INGESTION (BATCH & STREAM)
+// ==========================================
+profilesRouter.post("/upload", upload.single("file"), async (req, res) => {
+  if (!req.file)
+    return res.status(400).json({ error: "Please upload a CSV file" });
+
+  try {
+    // Hand the file path off to your dedicated service
+    const finalStats = await processCSV(req.file.path);
+
+    // Clean up the temp file
+    fs.unlinkSync(req.file.path);
+
+    // Return the required JSON
+    return res.status(200).json(finalStats);
+  } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res
+      .status(500)
+      .json({ status: "error", message: "File processing failed" });
   }
 });
 
