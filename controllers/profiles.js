@@ -9,6 +9,8 @@ const redisClient = require("../config/redis");
 const multer = require("multer");
 const { processCSV } = require("../services/ingestionService"); // Import your service!
 const fs = require("fs");
+const path = require("path"); // Add this line!
+const os = require("os");
 
 // Vercel only allows writing to the /tmp directory
 const upload = multer({ dest: path.join(os.tmpdir(), 'uploads') });
