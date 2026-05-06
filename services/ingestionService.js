@@ -42,7 +42,7 @@ async function processCSV(filePath) {
         stats.total_rows++;
 
         // Validation
-        if (!row.name || !row.gender || !row.country) {
+        if (!row.name || !row.gender || !row.country_id) {
           stats.skipped++;
           stats.reasons.missing_fields++;
           return;
