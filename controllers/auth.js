@@ -7,11 +7,11 @@ const generateTokens = (user) => {
   const access_token = jwt.sign(
     { id: user._id, role: user.role },
     config.JWT_ACCESS_SECRET,
-    { expiresIn: "3m" },
+    { expiresIn: "25m" },
   );
 
   const refresh_token = jwt.sign({ id: user._id }, config.JWT_REFRESH_SECRET, {
-    expiresIn: "5m",
+    expiresIn: "50m",
   });
 
   return { access_token, refresh_token };
